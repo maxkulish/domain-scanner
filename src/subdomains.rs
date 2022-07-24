@@ -1,10 +1,10 @@
 use std::{collections::HashSet, time::Duration};
 
-use reqwest::blocking::Client;
 use crate::{
     model::{CrtShEntry, Subdomain},
     Error,
 };
+use reqwest::blocking::Client;
 use trust_dns_resolver::{
     config::{ResolverConfig, ResolverOpts},
     Resolver,
@@ -12,14 +12,12 @@ use trust_dns_resolver::{
 
 const CRT_API: &str = "https://crt.sh";
 
-
 pub fn enumerate(http_client: &Client, target: &str) -> Result<Vec<Subdomain>, Error> {
-
     let entries: Vec<CrtShEntry> = http_client
         .get(&format!("{}/?q=%25.{}&output=json", CRT_API, target))
         .send()?
         .json()?;
-    
+
     // clean and dedup results
     let mut subdomains: HashSet<String> = entries
         .into_iter()
@@ -30,10 +28,10 @@ pub fn enumerate(http_client: &Client, target: &str) -> Result<Vec<Subdomain>, E
                 .map(|subdomain| subdomain.trim().to_string())
                 .collect::<Vec<String>>()
         })
-        .filter(|subdomain| subdomain != target )
+        .filter(|subdomain| subdomain != target)
         .filter(|subdomain| !subdomain.contains('*'))
         .collect();
-    
+
     subdomains.insert(target.to_string());
 
     let subdomains: Vec<Subdomain> = subdomains
@@ -52,11 +50,8 @@ pub fn resolves(domain: &Subdomain) -> bool {
     let mut opts = ResolverOpts::default();
     opts.timeout = Duration::from_secs(4);
 
-    let dns_resolver = Resolver::new(
-        ResolverConfig::default(),
-        opts,
-    )
-    .expect("subdomain resolver: building DNS client");
+    let dns_resolver = Resolver::new(ResolverConfig::default(), opts)
+        .expect("subdomain resolver: building DNS client");
 
     dns_resolver.lookup_ip(domain.domain.as_str()).is_ok()
 }
