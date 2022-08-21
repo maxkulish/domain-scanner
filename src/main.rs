@@ -16,7 +16,7 @@ struct CliArgs {
     /// Domain to scan for subdomains
     #[clap(short = 'd', long = "domain")]
     domain: String,
-    /// Scan ports for all subdomains or not
+    /// Scan open ports for all subdomains
     #[clap(short = 'p', long = "ports", action = ArgAction::SetTrue)]
     ports: bool,
 }
