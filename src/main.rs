@@ -1,6 +1,6 @@
 use rayon::prelude::*;
 use reqwest::{blocking::Client, redirect};
-use std::{env, time::Duration};
+use std::time::Duration;
 
 mod error;
 pub use error::Error;
@@ -9,15 +9,20 @@ mod ports;
 mod subdomains;
 use model::Subdomain;
 mod common_ports;
+use clap::{Parser, ArgAction};
+
+#[derive(Parser)]
+struct CliArgs {
+    /// Domain to scan for subdomains
+    #[clap(short = 'd', long = "domain")]
+    domain: String,
+    /// Scan ports for all subdomains or not
+    #[clap(short = 'p', long = "ports", action = ArgAction::SetTrue)]
+    ports: bool,
+}
 
 fn main() -> Result<(), anyhow::Error> {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() != 2 {
-        return Err(Error::CliUsage.into());
-    }
-
-    let target = args[1].as_str();
+    let args = CliArgs::parse();
 
     let http_timeout = Duration::from_secs(5);
     let http_client = Client::builder()
@@ -31,16 +36,23 @@ fn main() -> Result<(), anyhow::Error> {
         .unwrap();
 
     pool.install(|| {
-        let scan_result: Vec<Subdomain> = subdomains::enumerate(&http_client, target)
-            .unwrap()
-            .into_par_iter()
-            .map(ports::scan_ports)
-            .collect();
+        if args.ports {
+            let scan_result: Vec<Subdomain> = subdomains::enumerate(&http_client, &args.domain)
+                .unwrap()
+                .into_par_iter()
+                .map(ports::scan_ports)
+                .collect();
 
-        for subdomain in scan_result {
-            println!("{}:", subdomain.domain);
-            for port in &subdomain.open_ports {
-                println!("    {}", port.port);
+            for subdomain in scan_result {
+                println!("{}:", subdomain.domain);
+                for port in &subdomain.open_ports {
+                    println!("    {}", port.port);
+                }
+            }
+        } else {
+            let scan_result: Vec<Subdomain> = subdomains::enumerate(&http_client, &args.domain).unwrap();
+            for subdomain in scan_result {
+                println!("{}", subdomain.domain);
             }
         }
     });
