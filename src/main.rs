@@ -9,7 +9,7 @@ mod ports;
 mod subdomains;
 use model::Subdomain;
 mod common_ports;
-use clap::{Parser, ArgAction};
+use clap::{ArgAction, Parser};
 
 #[derive(Parser)]
 struct CliArgs {
@@ -50,7 +50,8 @@ fn main() -> Result<(), anyhow::Error> {
                 }
             }
         } else {
-            let scan_result: Vec<Subdomain> = subdomains::enumerate(&http_client, &args.domain).unwrap();
+            let scan_result: Vec<Subdomain> =
+                subdomains::enumerate(&http_client, &args.domain).unwrap();
             for subdomain in scan_result {
                 println!("{}", subdomain.domain);
             }
