@@ -11,6 +11,8 @@ use model::Subdomain;
 mod common_ports;
 use clap::{ArgAction, Parser};
 
+const HTTP_TIMEOUT: u64 = 30;
+
 #[derive(Parser)]
 struct CliArgs {
     /// Domain to scan for subdomains
@@ -24,7 +26,7 @@ struct CliArgs {
 fn main() -> Result<(), anyhow::Error> {
     let args = CliArgs::parse();
 
-    let http_timeout = Duration::from_secs(5);
+    let http_timeout = Duration::from_secs(HTTP_TIMEOUT);
     let http_client = Client::builder()
         .redirect(redirect::Policy::limited(4))
         .timeout(http_timeout)
@@ -34,29 +36,32 @@ fn main() -> Result<(), anyhow::Error> {
         .num_threads(256)
         .build()
         .unwrap();
-
-    pool.install(|| {
-        if args.ports {
-            let scan_result: Vec<Subdomain> = subdomains::enumerate(&http_client, &args.domain)
-                .unwrap()
-                .into_par_iter()
-                .map(ports::scan_ports)
-                .collect();
-
-            for subdomain in scan_result {
-                println!("{}:", subdomain.domain);
-                for port in &subdomain.open_ports {
-                    println!("    {}", port.port);
+    
+    if args.ports {
+        pool.install(|| {
+                let scan_result: Vec<Subdomain> = subdomains::enumerate(&http_client, &args.domain)
+                    .unwrap()
+                    .into_par_iter()
+                    .map(ports::scan_ports)
+                    .collect();
+    
+                for subdomain in scan_result {
+                    println!("{}:", subdomain.domain);
+                    for port in &subdomain.open_ports {
+                        println!("    {}", port.port);
+                    }
                 }
-            }
-        } else {
+            })
+    } else {
+        pool.install(|| {
             let scan_result: Vec<Subdomain> =
                 subdomains::enumerate(&http_client, &args.domain).unwrap();
+
             for subdomain in scan_result {
                 println!("{}", subdomain.domain);
             }
-        }
-    });
+        })
+    };
 
     Ok(())
 }
