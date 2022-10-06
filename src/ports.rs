@@ -6,6 +6,8 @@ use rayon::prelude::*;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::{net::TcpStream, time::Duration};
 
+const PORT_TIMEOUT: u64 = 3;
+
 pub fn scan_ports(mut subdomain: Subdomain) -> Subdomain {
     let socket_addresses: Vec<SocketAddr> = format!("{}:1024", subdomain.domain)
         .to_socket_addrs()
@@ -25,7 +27,7 @@ pub fn scan_ports(mut subdomain: Subdomain) -> Subdomain {
 }
 
 fn scan_port(mut socket_address: SocketAddr, port: u16) -> Port {
-    let timeout = Duration::from_secs(3);
+    let timeout = Duration::from_secs(PORT_TIMEOUT);
     socket_address.set_port(port);
 
     let is_open = TcpStream::connect_timeout(&socket_address, timeout).is_ok();
