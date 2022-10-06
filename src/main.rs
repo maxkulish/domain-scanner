@@ -36,22 +36,22 @@ fn main() -> Result<(), anyhow::Error> {
         .num_threads(256)
         .build()
         .unwrap();
-    
+
     if args.ports {
         pool.install(|| {
-                let scan_result: Vec<Subdomain> = subdomains::enumerate(&http_client, &args.domain)
-                    .unwrap()
-                    .into_par_iter()
-                    .map(ports::scan_ports)
-                    .collect();
-    
-                for subdomain in scan_result {
-                    println!("{}:", subdomain.domain);
-                    for port in &subdomain.open_ports {
-                        println!("    {}", port.port);
-                    }
+            let scan_result: Vec<Subdomain> = subdomains::enumerate(&http_client, &args.domain)
+                .unwrap()
+                .into_par_iter()
+                .map(ports::scan_ports)
+                .collect();
+
+            for subdomain in scan_result {
+                println!("{}:", subdomain.domain);
+                for port in &subdomain.open_ports {
+                    println!("    {}", port.port);
                 }
-            })
+            }
+        })
     } else {
         pool.install(|| {
             let scan_result: Vec<Subdomain> =
